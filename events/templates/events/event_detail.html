@@ -1,0 +1,20 @@
+﻿{% extends 'events/base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card p-4">
+            <h2 class="mb-1">{{ event.name }}</h2>
+            <hr>
+            <p><strong>📅 Date:</strong> {{ event.date }}</p>
+            <p><strong>⏰ Time:</strong> {{ event.time }}</p>
+            <p><strong>📝 Description:</strong> {{ event.description|default:"No description provided." }}</p>
+            <p class="text-muted small">Created: {{ event.created_at|date:"M d, Y H:i" }} &nbsp;|&nbsp; Updated: {{ event.updated_at|date:"M d, Y H:i" }}</p>
+            <div class="d-flex gap-2 mt-3">
+                <a href="{% url 'event_update' event.pk %}" class="btn btn-warning">✏️ Edit</a>
+                <a href="{% url 'event_delete' event.pk %}" class="btn btn-danger">🗑️ Delete</a>
+                <a href="{% url 'event_list' %}" class="btn btn-outline-secondary">← Back</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
