@@ -1,35 +1,225 @@
 ﻿{% extends 'events/base.html' %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="card p-4">
-            <h2 class="mb-4">{{ title }}</h2>
-            <form method="post">
-                {% csrf_token %}
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            {% for error in field.errors %}
-                                <div class="text-danger small mt-1">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                {% endfor %}
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        {% for error in form.non_field_errors %}
-                            <p class="mb-0">{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary">💾 Save Event</button>
-                    <a href="{% url 'event_list' %}" class="btn btn-outline-secondary">Cancel</a>
-                </div>
-            </form>
+<style>
+    .form-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        padding: 40px;
+        max-width: 620px;
+        margin: 0 auto;
+    }
+    .form-card h2 {
+        font-size: 26px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 28px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #f0f0f5;
+    }
+    .field-group {
+        margin-bottom: 22px;
+    }
+    .field-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 8px;
+    }
+    .field-group input,
+    .field-group textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1.5px solid #e8e8f0;
+        border-radius: 10px;
+        font-size: 15px;
+        color: #1a1a2e;
+        background: #fafafa;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        box-sizing: border-box;
+    }
+    .field-group input:focus,
+    .field-group textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        background: #fff;
+    }
+    .field-group textarea { resize: vertical; min-height: 110px; }
+    .time-picker-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border: 1.5px solid #e8e8f0;
+        border-radius: 10px;
+        background: #fafafa;
+        padding: 4px 8px;
+        width: fit-content;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .time-picker-wrap:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        background: #fff;
+    }
+    .time-select {
+        border: none;
+        background: transparent;
+        font-size: 22px;
+        font-weight: 700;
+        color: #1a1a2e;
+        outline: none;
+        cursor: pointer;
+        padding: 8px 4px;
+        width: 58px;
+        text-align: center;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    .time-colon {
+        font-size: 22px;
+        font-weight: 700;
+        color: #667eea;
+        padding: 0 2px;
+        user-select: none;
+    }
+    .time-divider {
+        width: 1.5px;
+        height: 32px;
+        background: #e8e8f0;
+        margin: 0 10px;
+    }
+    .ampm-group {
+        display: flex;
+        background: #f0f0f8;
+        border-radius: 8px;
+        overflow: hidden;
+        padding: 3px;
+        gap: 2px;
+    }
+    .ampm-btn {
+        border: none;
+        background: transparent;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #999;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.18s;
+        letter-spacing: 0.3px;
+    }
+    .ampm-btn.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(102,126,234,0.3);
+    }
+    .error-msg { color: #e74c3c; font-size: 12px; margin-top: 5px; }
+    .conflict-alert {
+        background: #fff5f5;
+        border: 1px solid #fcc;
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: #c0392b;
+        font-size: 14px;
+        margin-bottom: 18px;
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        border: none;
+        padding: 12px 32px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s;
+        letter-spacing: 0.3px;
+    }
+    .btn-save:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-cancel {
+        background: #f4f4f8;
+        color: #555;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+    .btn-cancel:hover { background: #eaeaf0; color: #333; }
+</style>
+
+<div class="form-card">
+    <h2>{{ title }}</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="field-group">
+            <label>Event Name</label>
+            <input type="text" name="name" value="{{ form.name.value|default:'' }}" placeholder="e.g. Team Standup Meeting">
+            {% for error in form.name.errors %}<div class="error-msg">{{ error }}</div>{% endfor %}
         </div>
-    </div>
+
+        <div class="field-group">
+            <label>Date</label>
+            <input type="date" name="date" value="{{ form.date.value|default:'' }}">
+            {% for error in form.date.errors %}<div class="error-msg">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field-group">
+            <label>Time</label>
+            <div class="time-picker-wrap">
+                <select name="hour" class="time-select">
+                    {% for val, label in form.hour.field.choices %}
+                        <option value="{{ val }}" {% if form.hour.value == val %}selected{% endif %}>{{ val }}</option>
+                    {% endfor %}
+                </select>
+                <span class="time-colon">:</span>
+                <select name="minute" class="time-select">
+                    {% for val, label in form.minute.field.choices %}
+                        <option value="{{ val }}" {% if form.minute.value == val %}selected{% endif %}>{{ val }}</option>
+                    {% endfor %}
+                </select>
+                <div class="time-divider"></div>
+                <div class="ampm-group">
+                    <button type="button" class="ampm-btn {% if form.ampm.value != 'PM' %}active{% endif %}" id="btn-am" onclick="setAMPM('AM')">AM</button>
+                    <button type="button" class="ampm-btn {% if form.ampm.value == 'PM' %}active{% endif %}" id="btn-pm" onclick="setAMPM('PM')">PM</button>
+                </div>
+                <input type="hidden" name="ampm" id="ampm-input" value="{{ form.ampm.value|default:'AM' }}">
+            </div>
+            {% for error in form.hour.errors %}<div class="error-msg">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field-group">
+            <label>Description</label>
+            <textarea name="description" placeholder="Add details about this event...">{{ form.description.value|default:'' }}</textarea>
+            {% for error in form.description.errors %}<div class="error-msg">{{ error }}</div>{% endfor %}
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="conflict-alert">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+        {% endif %}
+
+        <div style="display:flex; gap:12px; margin-top:8px;">
+            <button type="submit" class="btn-save">Save Event</button>
+            <a href="{% url 'event_list' %}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
 </div>
+
+<script>
+function setAMPM(val) {
+    document.getElementById('ampm-input').value = val;
+    document.getElementById('btn-am').classList.toggle('active', val === 'AM');
+    document.getElementById('btn-pm').classList.toggle('active', val === 'PM');
+}
+</script>
 {% endblock %}
